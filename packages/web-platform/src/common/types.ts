@@ -96,3 +96,9 @@ export type SystemOperationTypes = "getEnvironment" | "getBase";
 export interface ControlMessage extends Glue42WebPlatform.Plugins.ControlMessage {
     commandId?: string;
 }
+
+export interface ExtensionEnvironment {
+    appStart: {
+        forceTab: boolean;
+    };
+}

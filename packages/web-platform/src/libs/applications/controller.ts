@@ -2,7 +2,7 @@
 import { Glue42Web } from "@glue42/web";
 import { Glue42Core } from "@glue42/core";
 import { generate } from "shortid";
-import { ApplicationStartConfig, BridgeOperation, InternalApplicationsConfig, InternalPlatformConfig, LibController, SessionWindowData } from "../../common/types";
+import { ApplicationStartConfig, BridgeOperation, ExtensionEnvironment, InternalApplicationsConfig, InternalPlatformConfig, LibController, SessionWindowData } from "../../common/types";
 import { GlueController } from "../../controllers/glue";
 import { SessionStorageController } from "../../controllers/session";
 import { WindowsStateController } from "../../controllers/state";
@@ -19,6 +19,7 @@ import { SimpleWindowCommand, WindowTitleConfig } from "../windows/types";
 import { AppDirectory } from "./appStore/directory";
 
 export class ApplicationsController implements LibController {
+    private extensionConfig: ExtensionEnvironment | undefined;
     private config!: InternalApplicationsConfig;
     private applicationStartTimeoutMs = 15000;
     private started = false;
@@ -57,6 +58,8 @@ export class ApplicationsController implements LibController {
         this.logger?.trace("initializing applications");
 
         this.config = config.applications;
+
+        this.extensionConfig = config?.environment?.extension;
 
         this.appDirectory.start({
             config: config.applications,
@@ -146,7 +149,12 @@ export class ApplicationsController implements LibController {
 
         const openBounds = await this.getStartingBounds(appDefinition.createOptions, config, commandId);
 
-        const options = `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
+        // nullifying the options will force the new window to be opened as a tab
+        // this might be required when running in an extension environment
+
+        const options = this.extensionConfig?.appStart.forceTab ?
+            undefined :
+            `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
 
         this.logger?.trace(`[${commandId}] open arguments are valid, opening to bounds: ${options}`);
 
