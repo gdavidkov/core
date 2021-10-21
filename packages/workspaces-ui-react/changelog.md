@@ -1,3 +1,5 @@
+1.5.3
+chore: updated the react dependencies
 1.5.2
 feat: added a MoveArea component
 1.5.1
