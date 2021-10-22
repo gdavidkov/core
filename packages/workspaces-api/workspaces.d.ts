@@ -1553,6 +1553,14 @@ export namespace Glue42Workspaces {
         createWorkspace(definition: WorkspaceDefinition, saveConfig?: WorkspaceCreateConfig): Promise<Workspace>;
 
         /**
+         * Wait for a frame with the specified id to be loaded. 
+         * It's needed when using the workspaces-api from a custom workspaces frame and you have the frameId,
+         * but the frame object is not populated in the API yet (e.g. the frame is in the pool)
+         * @param id the id of the frame that should be waited
+         */
+        waitForFrame(id: string): Promise<Frame>;
+
+        /**
          * An API which gives full read, write and delete access to the workspaces layouts.
          */
         layouts: WorkspaceLayoutsAPI;

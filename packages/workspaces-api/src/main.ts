@@ -252,6 +252,30 @@ export const composeAPI = (glue: any, ioc: IoC): Glue42Workspaces.API => {
         return unsubscribe;
     };
 
+    const waitForFrame = async (id: string): Promise<Glue42Workspaces.Frame> => {
+        nonEmptyStringDecoder.runWithException(id);
+        return new Promise<Glue42Workspaces.Frame>((res, rej) => {
+            let unsub: Glue42Workspaces.Unsubscribe = () => {
+                // do nothing
+            };
+            onFrameOpened((f) => {
+                if (f.id === id) {
+                    res(f);
+                    unsub();
+                }
+            }).then((u) => {
+                unsub = u;
+                return getAllFrames();
+            }).then((frames) => {
+                const myFrame = frames.find((f) => f.id === id);
+                if (myFrame) {
+                    res(myFrame);
+                    unsub();
+                }
+            }).catch(rej);
+        });
+    };
+
     return {
         inWorkspace,
         getBuilder,
@@ -267,6 +291,7 @@ export const composeAPI = (glue: any, ioc: IoC): Glue42Workspaces.API => {
         getBox: getParent,
         restoreWorkspace,
         createWorkspace,
+        waitForFrame,
         layouts,
         onFrameOpened,
         onFrameClosed,

@@ -1,3 +1,5 @@
+1.8.2
+feat: added waitForFrame method
 1.8.1
 chore: added noTabHeader to the workspace restore options
 1.8.0
