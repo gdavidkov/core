@@ -1,15 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Glue42Web } from "@glue42/web";
-import { BridgeOperation, LibController } from "../../common/types";
+import { BridgeOperation, ExtensionEnvironment, InternalPlatformConfig, LibController } from "../../common/types";
 import { GlueController } from "../../controllers/glue";
 import { ServiceWorkerController } from "../../controllers/serviceWorker";
+import { SessionStorageController } from "../../controllers/session";
 import logger from "../../shared/logger";
 import { notificationsOperationDecoder, permissionQueryResultDecoder, permissionRequestResultDecoder, raiseNotificationDecoder } from "./decoders";
-import { GlueNotificationData, NotificationEventPayload, NotificationsOperationsTypes, PermissionQueryResult, PermissionRequestResult, RaiseNotificationConfig } from "./types";
+import { ExtensionNotification, GlueNotificationData, NotificationEventPayload, NotificationsOperationsTypes, PermissionQueryResult, PermissionRequestResult, RaiseNotificationConfig } from "./types";
 
 export class NotificationsController implements LibController {
 
     private started = false;
+    private extensionConfig: ExtensionEnvironment | undefined;
 
     private operations: { [key in NotificationsOperationsTypes]: BridgeOperation } = {
         raiseNotification: { name: "raiseNotification", execute: this.handleRaiseNotification.bind(this), dataDecoder: raiseNotificationDecoder },
@@ -19,16 +21,23 @@ export class NotificationsController implements LibController {
 
     constructor(
         private readonly glueController: GlueController,
-        private readonly serviceWorkerController: ServiceWorkerController
+        private readonly serviceWorkerController: ServiceWorkerController,
+        private readonly session: SessionStorageController
     ) { }
 
     private get logger(): Glue42Web.Logger.API | undefined {
         return logger.get("notifications.controller");
     }
 
-    public async start(): Promise<void> {
+    public async start(config: InternalPlatformConfig): Promise<void> {
 
         this.started = true;
+
+        this.extensionConfig = config?.environment?.extension;
+
+        if (this.extensionConfig) {
+            this.listenForExtensionNotificationsEvents();
+        }
 
         this.serviceWorkerController.onNotificationClick(this.handleNotificationClick.bind(this));
     }
@@ -103,7 +112,11 @@ export class NotificationsController implements LibController {
 
         const hasDefinedActions = settings.actions && settings.actions.length;
 
-        if (hasDefinedActions) {
+        if (this.extensionConfig) {
+            this.logger?.trace(`[${commandId}] notification with a title: ${settings.title} will be raised with the native extension notifications API, because the platform is running in extension mode`);
+
+            await this.raiseExtensionNotification(settings, id);
+        } else if (hasDefinedActions) {
 
             this.logger?.trace(`[${commandId}] notification with a title: ${settings.title} was found to be persistent and therefore the service worker will be instructed to raise it.`);
 
@@ -164,6 +177,39 @@ export class NotificationsController implements LibController {
             });
     }
 
+    private raiseExtensionNotification(settings: Glue42Web.Notifications.RaiseOptions, id: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+
+            if (!this.extensionConfig) {
+                return reject("Cannot raise a notification, because the environment settings for the extension mode are missing.");
+            }
+
+            const buttons = settings.actions ?
+                settings.actions.map((action) => ({ title: action.title, iconUrl: action.icon })) :
+                undefined;
+
+            const chromeOptions: chrome.notifications.NotificationOptions = {
+                type: "basic",
+                iconUrl: settings.icon || this.extensionConfig.notifications.defaultIcon,
+                title: settings.title,
+                message: settings.body || this.extensionConfig.notifications.defaultMessage,
+                silent: settings.silent,
+                requireInteraction: settings.requireInteraction,
+                imageUrl: settings.image,
+                buttons
+            };
+
+            console.log("Raising an extension notification with options");
+            console.log(chromeOptions);
+
+            const extensionNotification: ExtensionNotification = { id, settings };
+
+            this.session.saveNotification(extensionNotification);
+
+            chrome.notifications.create(id, chromeOptions, () => resolve());
+        });
+    }
+
     private raiseSimpleNotification(settings: Glue42Web.Notifications.RaiseOptions, id: string): void {
         const options: NotificationOptions = Object.assign({}, settings, { title: undefined, clickInterop: undefined });
 
@@ -199,4 +245,53 @@ export class NotificationsController implements LibController {
         };
     }
 
+    private listenForExtensionNotificationsEvents(): void {
+        chrome.notifications.onClicked.addListener((id) => {
+
+            const notificationData = this.session.getNotification(id);
+
+            if (!notificationData) {
+                return;
+            }
+
+            const glueData: GlueNotificationData = {
+                id,
+                clickInterop: notificationData.settings.clickInterop
+            };
+
+            const definition: Glue42Web.Notifications.NotificationDefinition = notificationData.settings;
+
+            this.handleNotificationClick({ action: "", definition, glueData });
+
+            this.session.removeNotification(id);
+        });
+
+        chrome.notifications.onButtonClicked.addListener((id, buttonIndex) => {
+
+            const notificationData = this.session.getNotification(id);
+
+            if (!notificationData) {
+                return;
+            }
+
+            if (!notificationData.settings.actions) {
+                return;
+            }
+
+            const glueData: GlueNotificationData = {
+                id,
+                clickInterop: notificationData.settings.clickInterop
+            };
+
+            const definition: Glue42Web.Notifications.NotificationDefinition = notificationData.settings;
+
+            const action = notificationData.settings.actions[buttonIndex].action;
+
+            this.handleNotificationClick({ action, definition, glueData });
+
+            this.session.removeNotification(id);
+        });
+
+        chrome.notifications.onClosed.addListener((id) => this.session.removeNotification(id));
+    }
 }

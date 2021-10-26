@@ -24,6 +24,8 @@ export default class WebPlatformTransport implements Transport {
     private myClientId: string | undefined;
     private children: Array<{ grandChildId: string; source: Window; connected: boolean; origin: string }> = [];
 
+    private readonly extContentAvail: boolean = false;
+    private readonly extContentConnected: boolean = false;
     private readonly parent: Window | undefined;
     private readonly parentType: "opener" | "top" | "workspace" | undefined;
     private readonly parentPingTimeout = 3000;
@@ -44,6 +46,10 @@ export default class WebPlatformTransport implements Transport {
     };
 
     constructor(private readonly settings: Glue42Core.WebPlatformConnection, private readonly logger: Logger, private readonly identity?: Identity) {
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        this.extContentAvail = !!(window as any).glue42ext;
+
         this.setUpMessageListener();
         this.setUpUnload();
 
@@ -216,6 +222,12 @@ export default class WebPlatformTransport implements Transport {
         }
 
         window.addEventListener("beforeunload", () => {
+
+            if (this.extContentConnected) {
+                // before unload in this case should be handled in the content script
+                return;
+            }
+
             const message = {
                 glue42core: {
                     type: this.messages.clientUnload.name,

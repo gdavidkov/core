@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Glue42WebPlatform } from "../platform";
-import { platformConfigDecoder } from "./shared/decoders";
+import { extensionEnvironmentDecoder, platformConfigDecoder } from "./shared/decoders";
 import { defaultPlatformConfig } from "./common/defaultConfig";
 import deepMerge from "deepmerge";
 import { version } from "../package.json";
@@ -48,6 +48,12 @@ export class Platform {
 
     private processConfig(config: Glue42WebPlatform.Config = {}): void {
         const verifiedConfig = platformConfigDecoder.runWithException(config);
+
+        const currentProtocol = (new URL(window.location.href)).protocol;
+
+        if (currentProtocol.includes("extension")) {
+            extensionEnvironmentDecoder.runWithException(verifiedConfig.environment?.extension);
+        }
 
         this.validatePlugins(verifiedConfig);
 

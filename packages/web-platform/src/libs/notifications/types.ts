@@ -29,3 +29,8 @@ export interface NotificationEventPayload {
     action?: string;
     id?: string;
 }
+
+export interface ExtensionNotification {
+    id: string;
+    settings: Glue42Web.Notifications.RaiseOptions;
+}

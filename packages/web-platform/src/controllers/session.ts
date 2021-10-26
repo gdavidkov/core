@@ -2,6 +2,7 @@ import { Glue42Core } from "@glue42/core";
 import { SessionNonGlueData, SessionWindowData, WorkspaceWindowSession } from "../common/types";
 import { BaseApplicationData, BridgeInstanceData, InstanceData } from "../libs/applications/types";
 import { LayoutsSnapshot } from "../libs/layouts/types";
+import { ExtensionNotification } from "../libs/notifications/types";
 import { FrameSessionData } from "../libs/workspaces/types";
 import logger from "../shared/logger";
 
@@ -17,6 +18,7 @@ export class SessionStorageController {
     private readonly layoutNamespace = "g42_core_layouts";
     private readonly appDefsNamespace = "g42_core_app_definitions";
     private readonly appDefsInmemoryNamespace = "g42_core_app_definitions_inmemory";
+    private readonly extNotificationsNamespace = "g42_ext_notifications";
 
     constructor() {
         this.sessionStorage = window.sessionStorage;
@@ -31,7 +33,8 @@ export class SessionStorageController {
             this.layoutNamespace,
             this.appDefsNamespace,
             this.workspaceHibernationNamespace,
-            this.appDefsInmemoryNamespace
+            this.appDefsInmemoryNamespace,
+            this.extNotificationsNamespace
         ].forEach((namespace) => {
             const data = this.sessionStorage.getItem(namespace);
 
@@ -292,6 +295,37 @@ export class SessionStorageController {
 
     public getAllInstancesData(): InstanceData[] {
         return JSON.parse(this.sessionStorage.getItem(this.instancesNamespace) as string);
+    }
+
+    public removeNotification(id: string): void {
+        const allNotifications: ExtensionNotification[] = JSON.parse(this.sessionStorage.getItem(this.extNotificationsNamespace) as string);
+
+        const notification = allNotifications.find((notification) => notification.id === id);
+
+        if (notification) {
+            this.sessionStorage.setItem(this.extNotificationsNamespace, JSON.stringify(allNotifications.filter((notification) => notification.id !== id)));
+        }
+    }
+
+    public saveNotification(notification: ExtensionNotification): void {
+        const allNotifications: ExtensionNotification[] = JSON.parse(this.sessionStorage.getItem(this.extNotificationsNamespace) as string);
+
+        if (allNotifications.some((entry) => entry.id === notification.id)) {
+            this.logger?.trace(`did not save this data: ${JSON.stringify(notification)}, because an entry with this id already exists`);
+            return;
+        }
+
+        this.logger?.trace(`saving notification with id: ${notification.id}`);
+
+        allNotifications.push(notification);
+
+        this.sessionStorage.setItem(this.extNotificationsNamespace, JSON.stringify(allNotifications));
+    }
+
+    public getNotification(id: string): ExtensionNotification | undefined {
+        const allNotifications: ExtensionNotification[] = JSON.parse(this.sessionStorage.getItem(this.extNotificationsNamespace) as string);
+
+        return allNotifications.find((notification) => notification.id === id);
     }
 
     public saveWindowData(data: SessionWindowData): void {

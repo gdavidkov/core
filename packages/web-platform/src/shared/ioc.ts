@@ -217,7 +217,8 @@ export class IoC {
         if (!this._notificationsController) {
             this._notificationsController = new NotificationsController(
                 this.glueController,
-                this.serviceWorkerController
+                this.serviceWorkerController,
+                this.sessionController
             );
         }
 

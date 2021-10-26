@@ -3,7 +3,7 @@ import { Glue42Web } from "@glue42/web";
 import { Glue42Workspaces } from "@glue42/workspaces-api";
 import { anyJson, array, boolean, constant, Decoder, fail, lazy, number, object, oneOf, optional, string } from "decoder-validate";
 import { Glue42WebPlatform } from "../../platform";
-import { LibDomains, SystemOperationTypes } from "../common/types";
+import { ExtensionEnvironment, LibDomains, SystemOperationTypes } from "../common/types";
 
 export const nonNegativeNumberDecoder: Decoder<number> = number().where((num) => num >= 0, "Expected a non-negative number");
 export const nonEmptyStringDecoder: Decoder<string> = string().where((s) => s.length > 0, "Expected a non-empty string");
@@ -333,4 +333,14 @@ export const windowOpenSettingsDecoder: Decoder<Glue42Web.Windows.Settings> = ob
     context: optional(anyJson()),
     relativeTo: optional(nonEmptyStringDecoder),
     relativeDirection: optional(windowRelativeDirectionDecoder)
+});
+
+export const extensionEnvironmentDecoder: Decoder<ExtensionEnvironment> = object({
+    appStart: object({
+        forceTab: boolean()
+    }),
+    notifications: object({
+        defaultIcon: nonEmptyStringDecoder,
+        defaultMessage: string()
+    })
 });

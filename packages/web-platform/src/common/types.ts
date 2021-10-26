@@ -101,4 +101,8 @@ export interface ExtensionEnvironment {
     appStart: {
         forceTab: boolean;
     };
+    notifications: {
+        defaultIcon: string;
+        defaultMessage: string;
+    };
 }
