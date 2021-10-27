@@ -57,4 +57,36 @@ export class Gateway {
             client.send(event.data);
         };
     }
+
+    public async connectExtClient(port: chrome.runtime.Port, removeFromPlatform?: (clientId: string, announce?: boolean) => void): Promise<void> {
+
+        const client = await this._gatewayWebInstance.connect((_: object, message: string) => port.postMessage({ glue42ExtInc: message }));
+
+        port.onMessage.addListener((message) => {
+
+            const coreData = message?.glue42ExtOut?.glue42core;
+
+            if (coreData && coreData.type === Glue42CoreMessageTypes.clientUnload.name) {
+
+                client.disconnect();
+
+                port.disconnect();
+
+                if (removeFromPlatform) {
+                    removeFromPlatform(coreData.data.clientId, true);
+                }
+
+                return;
+            }
+
+            if (message.glue42ExtOut && !coreData) {
+                const msg = message.glue42ExtOut;
+
+                client.send(msg);
+
+                return;
+            }
+
+        });
+    }
 }

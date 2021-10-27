@@ -1,5 +1,5 @@
 import typescript from 'rollup-plugin-typescript2';
-import { terser } from 'rollup-plugin-terser';
+// import { terser } from 'rollup-plugin-terser';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import json from '@rollup/plugin-json';
@@ -24,7 +24,7 @@ export default {
         typescript({
             typescript: require('typescript'),
         }),
-        terser(),
+        // terser(),
         // Allow json resolution
         json(),
         // // Allow bundling cjs modules (unlike webpack, rollup doesn't understand cjs)

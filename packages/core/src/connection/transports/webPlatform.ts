@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Glue42Core } from "../../../glue";
 import { Identity, Transport } from "../types";
 import { Logger } from "../../logger/logger";
@@ -9,7 +10,9 @@ import {
 import generate from "shortid";
 import { PromisePlus } from "../../utils/promise-plus";
 
-type MessageType = "connectionAccepted" | "connectionRejected" | "connectionRequest" | "parentReady" | "parentPing" | "platformPing" | "platformUnload" | "platformReady" | "clientUnload" | "manualUnload";
+type MessageType = "connectionAccepted" | "connectionRejected" | "connectionRequest" | "parentReady" |
+    "parentPing" | "platformPing" | "platformUnload" | "platformReady" | "clientUnload" | "manualUnload" |
+    "extConnectionResponse" | "extSetupRequest";
 
 export default class WebPlatformTransport implements Transport {
 
@@ -19,13 +22,19 @@ export default class WebPlatformTransport implements Transport {
     private rejected = false;
     private parentPingResolve: ((value?: void | PromiseLike<void> | undefined) => void) | undefined;
     private connectionResolve: ((value?: void | PromiseLike<void> | undefined) => void) | undefined;
+    private extConnectionResolve: ((value: void | PromiseLike<void>) => void) | undefined;
+    private extConnectionReject: ((reason?: any) => void) | undefined;
     private connectionReject: ((reason?: unknown) => void) | undefined;
     private port: MessagePort | undefined;
     private myClientId: string | undefined;
     private children: Array<{ grandChildId: string; source: Window; connected: boolean; origin: string }> = [];
 
-    private readonly extContentAvail: boolean = false;
-    private readonly extContentConnected: boolean = false;
+    private extContentAvailable = false;
+    private extContentConnecting = false;
+    private extContentConnected = false;
+    private parentWindowId: string | undefined;
+    private parentInExtMode = false;
+
     private readonly parent: Window | undefined;
     private readonly parentType: "opener" | "top" | "workspace" | undefined;
     private readonly parentPingTimeout = 3000;
@@ -42,13 +51,13 @@ export default class WebPlatformTransport implements Transport {
         platformUnload: { name: "platformUnload", handle: this.handlePlatformUnload.bind(this) },
         platformReady: { name: "platformReady", handle: this.handlePlatformReady.bind(this) },
         clientUnload: { name: "clientUnload", handle: this.handleClientUnload.bind(this) },
-        manualUnload: { name: "manualUnload", handle: this.handleManualUnload.bind(this) }
+        manualUnload: { name: "manualUnload", handle: this.handleManualUnload.bind(this) },
+        extConnectionResponse: { name: "extConnectionResponse", handle: this.handleExtConnectionResponse.bind(this) },
+        extSetupRequest: { name: "extSetupRequest", handle: this.handleExtSetupRequest.bind(this) }
     };
 
     constructor(private readonly settings: Glue42Core.WebPlatformConnection, private readonly logger: Logger, private readonly identity?: Identity) {
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.extContentAvail = !!(window as any).glue42ext;
+        this.extContentAvailable = !!(window as any).glue42ext;
 
         this.setUpMessageListener();
         this.setUpUnload();
@@ -66,6 +75,11 @@ export default class WebPlatformTransport implements Transport {
     }
 
     public async sendObject(msg: object): Promise<void> {
+
+        if (this.extContentConnected) {
+            return window.postMessage({ glue42ExtOut: msg }, this.defaultTargetString);
+        }
+
         if (!this.port) {
             throw new Error("Cannot send message, because the port was not opened yet");
         }
@@ -140,8 +154,13 @@ export default class WebPlatformTransport implements Transport {
         this.logger.debug(`opening a ${this.parentType === "opener" ? "child" : "grandchild"} client web platform connection`);
 
         await this.waitParent(this.parent, this.parentType);
+
+        if (this.parentInExtMode) {
+            await this.requestConnectionPermissionFromExt();
+        }
+
         await this.initiateRemoteConnection(this.parent, this.parentType);
-        // I AM READY HERE
+
         this.logger.debug(`the ${this.parentType === "opener" ? "child" : "grandchild"} client is connected`);
     }
 
@@ -166,13 +185,29 @@ export default class WebPlatformTransport implements Transport {
 
             this.logger.debug(`sending connection request to ${parentType}`);
 
+            if (this.extContentConnecting) {
+                request.glue42core.clientType = "child";
+                request.glue42core.bridgeInstanceId = this.myClientId;
+                (request as any).glue42core.parentWindowId = this.parentWindowId;
+                return window.postMessage(request, this.defaultTargetString);
+            }
+
             target.postMessage(request, this.defaultTargetString);
         }, this.connectionRequestTimeout, "The connection to the opener/top window timed out");
 
     }
 
-    private waitParent(target: Window, parentType: "opener" | "top" | "workspace"): Promise<void> {
-        return PromisePlus<void>((resolve) => {
+    private async waitParent(target: Window, parentType: "opener" | "top" | "workspace"): Promise<void> {
+        const connectionNotPossibleMsg = "Cannot initiate glue, because this window was not opened or created by a glue client";
+
+        const parentCheck = PromisePlus<void>((resolve, reject) => {
+
+            const isIframe = window.self !== window.top;
+
+            if (parentType === "top" && !isIframe) {
+                return reject(connectionNotPossibleMsg);
+            }
+
             this.parentPingResolve = resolve;
 
             const message = {
@@ -184,7 +219,23 @@ export default class WebPlatformTransport implements Transport {
             this.logger.debug(`checking for ${parentType} window availability`);
 
             target.postMessage(message, this.defaultTargetString);
-        }, this.parentPingTimeout, "Cannot initiate glue, because this window was not opened or created by a glue client");
+        }, this.parentPingTimeout, connectionNotPossibleMsg);
+
+        if (!this.extContentAvailable) {
+            return parentCheck;
+        }
+
+        try {
+            await parentCheck;
+
+            return;
+        } catch (error) {
+            this.logger.debug("the parent check failed, but there is an associated extension content script, requesting permission...");
+            // all attempts failed, but there is a glue extension content script
+            // requesting connection permission there
+            await this.requestConnectionPermissionFromExt();
+        }
+
     }
 
     private setUpMessageListener(): void {
@@ -246,9 +297,17 @@ export default class WebPlatformTransport implements Transport {
         });
     }
 
-    private handleParentReady(): void {
+    private handleParentReady(event: MessageEvent): void {
         this.logger.debug("handling the ready signal from the parent, by resoling the pending promise.");
         this.parentReady = true;
+
+        const data = event.data?.glue42core;
+
+        if (data && data.extMode) {
+            this.logger.debug("my parent is connected to its content script, fetching windowId and proceeding with content script connection");
+            this.parentWindowId = data.extMode.windowId;
+            this.parentInExtMode = true;
+        }
 
         if (this.parentPingResolve) {
             this.parentPingResolve();
@@ -286,6 +345,10 @@ export default class WebPlatformTransport implements Transport {
     private handleAcceptanceOfMyRequest(data: any): void {
         this.logger.debug("handling a connection accepted signal targeted at me.");
 
+        if (this.extContentConnecting) {
+            return this.processExtContentConnection(data);
+        }
+
         if (!data.port) {
             this.logger.error("cannot set up my connection, because I was not provided with a port");
             return;
@@ -317,8 +380,47 @@ export default class WebPlatformTransport implements Transport {
         this.logger.error("unable to call the connection resolve, because no connection promise was found");
     }
 
+    private processExtContentConnection(data: any): void {
+        this.logger.debug("handling a connection accepted signal targeted at me for extension content connection.");
+
+        this.extContentConnecting = false;
+        this.extContentConnected = true;
+
+        this.publicWindowId = this.parentWindowId || this.myClientId;
+
+        if (this.extContentConnecting && this.identity) {
+            this.identity.windowId = this.publicWindowId;
+        }
+
+        if (this.identity && data.appName) {
+            this.identity.application = data.appName;
+            this.identity.applicationName = data.appName;
+        }
+
+        window.addEventListener("message", (event) => {
+            const extData = event.data?.glue42ExtInc;
+
+            if (!extData) {
+                return;
+            }
+
+            this.registry.execute("onMessage", extData);
+        });
+
+        if (this.connectionResolve) {
+            this.logger.debug("my connection is set up, calling the connection resolve.");
+            this.connectionResolve();
+            delete this.connectionResolve;
+            return;
+        }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private handleAcceptanceOfGrandChildRequest(data: any, event: MessageEvent): void {
+        if (this.extContentConnecting || this.extContentConnected) {
+            this.logger.debug("cannot process acceptance of a grandchild, because I am connected to a content script");
+            return;
+        }
         this.logger.debug(`handling a connection accepted signal targeted at a grandchild: ${data.clientId}`);
 
         const child = this.children.find((c) => c.grandChildId === data.clientId);
@@ -347,6 +449,13 @@ export default class WebPlatformTransport implements Transport {
     }
 
     private handleConnectionRequest(event: MessageEvent): void {
+
+        if (this.extContentConnecting) {
+            // I am being connected now and this is handled in the associated content script
+            this.logger.debug("This connection request event is targeted at the extension content");
+            return;
+        }
+
         const source = event.source as Window;
         const data = event.data.glue42core;
 
@@ -389,6 +498,10 @@ export default class WebPlatformTransport implements Transport {
             }
         };
 
+        if (this.extContentConnected) {
+            (message as any).glue42core.extMode = { windowId: this.myClientId };
+        }
+
         const source = event.source as Window;
 
         this.logger.debug("responding to a parent ping with a ready message");
@@ -423,6 +536,10 @@ export default class WebPlatformTransport implements Transport {
 
         if (this.parent) {
             this.parent.postMessage(message, this.defaultTargetString);
+        }
+
+        if (this.extContentConnected) {
+            return window.postMessage({ glue42ExtOut: message }, this.defaultTargetString);
         }
 
         this.port?.postMessage(message);
@@ -473,5 +590,64 @@ export default class WebPlatformTransport implements Transport {
         };
 
         source.postMessage(rejection, origin);
+    }
+
+    // --- ext methods ---
+
+    private requestConnectionPermissionFromExt(): Promise<void> {
+
+        // here I know that a content script is started, but not sure if it is ready
+
+        return this.waitForContentScript()
+            .then(() => PromisePlus<void>((resolve, reject) => {
+                this.extConnectionResolve = resolve;
+                this.extConnectionReject = reject;
+
+                const message = {
+                    glue42core: {
+                        type: "extSetupRequest"
+                    }
+                };
+
+                this.logger.debug("permission request to the extension content script was sent");
+
+                window.postMessage(message, this.defaultTargetString);
+            }, this.parentPingTimeout, "Cannot initialize glue, because this app was not opened or created by a Glue Client and the request for extension connection timed out"));
+    }
+
+    private handleExtConnectionResponse(event: MessageEvent): void {
+        const data = event.data?.glue42core;
+
+        if (!data.approved && this.extConnectionReject) {
+            return this.extConnectionReject("Cannot initialize glue, because this app was not opened or created by a Glue Client and the request for extension connection was rejected");
+        }
+
+        if (this.extConnectionResolve) {
+            this.extContentConnecting = true;
+            this.logger.debug("The extension connection was approved, proceeding.");
+            this.extConnectionResolve();
+            delete this.extConnectionResolve;
+        }
+    }
+
+    private handleExtSetupRequest(): void {
+        // this is handled by the associated content script
+        return;
+    }
+
+    private waitForContentScript(): Promise<void> {
+        const contentReady = !!(window as any).glue42ext?.content;
+
+        if (contentReady) {
+            return Promise.resolve();
+        }
+
+        return PromisePlus<void>((resolve) => {
+
+            window.addEventListener("Glue42EXTReady", () => {
+                resolve();
+            });
+
+        }, this.connectionRequestTimeout, "The content script was available, but was never heard to be ready");
     }
 }

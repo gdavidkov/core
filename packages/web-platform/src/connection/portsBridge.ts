@@ -8,14 +8,14 @@ import {
     CallbackRegistry,
     UnsubscribeFunction,
 } from "callback-registry";
-import { CoreClientData } from "../common/types";
+import { CoreClientData, SessionWindowData } from "../common/types";
 import { SessionStorageController } from "../controllers/session";
 import { Glue42WebPlatform } from "../../platform";
 
 export class PortsBridge {
 
     private readonly registry: CallbackRegistry = CallbackRegistryFactory();
-    private clients: { [key: string]: Window } = {};
+    private clients: { [key: string]: Window | chrome.runtime.Port } = {};
     private unLoadStarted = false;
 
     constructor(
@@ -41,6 +41,44 @@ export class PortsBridge {
 
     public onClientUnloaded(callback: (client: CoreClientData) => void): UnsubscribeFunction {
         return this.registry.add("client-unloaded", callback);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public async handleExtConnectionRequest(clientData: any, port: chrome.runtime.Port): Promise<void> {
+
+        const client = clientData.glue42core;
+
+        const hasImpersonatedWindowId = !!client.parentWindowId;
+
+        if (!hasImpersonatedWindowId) {
+            // I am a real window
+            const id = client.clientId;
+
+            const windowData: SessionWindowData = {
+                windowId: id,
+                name: id
+            };
+
+            await this.ioc.windowsController.processNewWindow(windowData);
+        }
+
+        await this.gateway.connectExtClient(port, this.removeClient.bind(this));
+
+        const myWindowId = this.sessionStorage.getWindowDataByName("Platform")?.windowId;
+
+        const message = {
+            glue42core: {
+                type: Glue42CoreMessageTypes.connectionAccepted.name,
+                parentWindowId: myWindowId,
+                appName: "ext-no-app",
+                clientId: client.clientId,
+                clientType: "child"
+            }
+        };
+
+        this.clients[client.clientId] = port;
+
+        port.postMessage(message);
     }
 
     private setUpBeforeUnload(): void {
@@ -139,7 +177,7 @@ export class PortsBridge {
         source.postMessage(message, origin);
     }
 
-    private removeClient(clientId: string): void {
+    private removeClient(clientId: string, announce?: boolean): void {
         if (!clientId) {
             return;
         }
@@ -147,6 +185,13 @@ export class PortsBridge {
             delete this.clients[clientId];
         }
 
-        // this.registry.execute("client-unloaded", client);
+        if (announce) {
+
+            const client = {
+                windowId: clientId
+            };
+
+            this.registry.execute("client-unloaded", client);
+        }
     }
 }

@@ -30,8 +30,11 @@ export class Platform {
 
     public exposeAPI(): Glue42WebPlatform.API {
         return {
-            version: this.version
-        };
+            version: this.version,
+            connectExtClient: (client: any, port: any) => {
+                return this.controller.connectExtClient(client, port);
+            }
+        } as Glue42WebPlatform.API;
     }
 
     private get version(): string {

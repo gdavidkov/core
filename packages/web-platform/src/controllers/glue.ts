@@ -244,7 +244,7 @@ export class GlueController {
             if (!Array.isArray(invocationResult.all_return_values) || invocationResult.all_return_values.length === 0) {
                 throw new Error(`${baseErrorMessage} Received unsupported result from the client - empty values collection`);
             }
-        } catch (error) {
+        } catch (error: any) {
             if (error && error.all_errors && error.all_errors.length) {
                 // IMPORTANT: Do NOT change the `Inner message:` string, because it is used by other programs to extract the inner message of a communication error
                 const invocationErrorMessage = error.all_errors[0].message;

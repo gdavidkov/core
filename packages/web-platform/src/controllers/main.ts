@@ -80,6 +80,10 @@ export class PlatformController {
         this.serviceWorkerController.notifyReady();
     }
 
+    public async connectExtClient(client: any, port: any): Promise<void> {
+        await this.portsBridge.handleExtConnectionRequest(client, port);
+    }
+
     public getClientGlue(): Glue42Web.API {
         return this.glueController.clientGlue;
     }
