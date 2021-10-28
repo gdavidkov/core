@@ -127,6 +127,13 @@ export class IFrameController {
         frame.style.width = "0px";
         frame.style.height = "0px";
         frame.src = url;
+
+        const inExt = (new URL(location.href)).protocol.includes("extension");
+
+        if (inExt) {
+            frame.setAttribute("sandbox", "allow-forms allow-scripts allow-modals allow-orientation-lock allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin");
+        }
+
         document.body.appendChild(frame);
 
         this._registry.execute("frameLoaded", id);
