@@ -273,7 +273,8 @@ export const applicationStartConfigDecoder: Decoder<ApplicationStartConfig> = ob
         constant("left"),
         constant("right"),
         constant("bottom")
-    ))
+    )),
+    forceChromeTab: optional(boolean())
 });
 
 export const layoutTypeDecoder: Decoder<Glue42Web.Layouts.LayoutType> = oneOf<"Global" | "Activity" | "ApplicationDefault" | "Swimlane" | "Workspace">(

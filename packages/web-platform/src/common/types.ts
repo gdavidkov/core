@@ -89,6 +89,7 @@ export interface ApplicationStartConfig {
     relativeTo?: string;
     relativeDirection?: "top" | "left" | "right" | "bottom";
     waitForAGMReady?: boolean;
+    forceChromeTab?: boolean;
 }
 
 export type SystemOperationTypes = "getEnvironment" | "getBase";

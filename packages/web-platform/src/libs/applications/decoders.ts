@@ -71,7 +71,8 @@ export const applicationStartConfigDecoder: Decoder<ApplicationStartConfig> = ob
         constant("right"),
         constant("bottom")
     )),
-    waitForAGMReady: optional(boolean())
+    waitForAGMReady: optional(boolean()),
+    forceChromeTab: optional(boolean())
 });
 
 export const appsImportOperationDecoder: Decoder<AppsImportOperation> = object({

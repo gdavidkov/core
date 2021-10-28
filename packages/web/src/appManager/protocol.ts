@@ -69,6 +69,7 @@ export interface ApplicationStartConfig {
     height?: number;
     relativeTo?: string;
     relativeDirection?: "top" | "left" | "right" | "bottom";
+    forceChromeTab?: boolean;
 }
 
 export interface BasicInstanceData {

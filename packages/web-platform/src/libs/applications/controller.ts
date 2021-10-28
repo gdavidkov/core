@@ -149,10 +149,7 @@ export class ApplicationsController implements LibController {
 
         const openBounds = await this.getStartingBounds(appDefinition.createOptions, config, commandId);
 
-        // nullifying the options will force the new window to be opened as a tab
-        // this might be required when running in an extension environment
-
-        const options = this.extensionConfig?.appStart.forceTab ?
+        const options = config.forceChromeTab ?
             undefined :
             `left=${openBounds.left},top=${openBounds.top},width=${openBounds.width},height=${openBounds.height}`;
 
