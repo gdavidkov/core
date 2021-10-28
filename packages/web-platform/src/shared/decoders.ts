@@ -177,7 +177,8 @@ export const glueCoreAppDefinitionDecoder: Decoder<Glue42Web.AppManager.Definiti
     icon: optional(nonEmptyStringDecoder),
     caption: optional(nonEmptyStringDecoder),
     details: applicationDetailsDecoder,
-    intents: optional(array(intentDefinitionDecoder))
+    intents: optional(array(intentDefinitionDecoder)),
+    hidden: optional(boolean())
 });
 
 // todo: remove this dirty fix once the remote app services are updated

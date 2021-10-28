@@ -205,7 +205,8 @@ export const applicationDefinitionDecoder: Decoder<Glue42Web.AppManager.Definiti
     icon: optional(nonEmptyStringDecoder),
     caption: optional(nonEmptyStringDecoder),
     details: applicationDetailsDecoder,
-    intents: optional(array(intentDefinitionDecoder))
+    intents: optional(array(intentDefinitionDecoder)),
+    hidden: optional(boolean())
 });
 
 export const allApplicationDefinitionsDecoder: Decoder<Glue42Web.AppManager.Definition | FDC3Definition> = oneOf<Glue42Web.AppManager.Definition | FDC3Definition>(

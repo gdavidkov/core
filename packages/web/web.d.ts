@@ -923,6 +923,11 @@ export namespace Glue42Web {
              * The list of intents implemented by the Application
              */
             intents?: Intent[];
+
+            /**
+             * If set to true, the application will not be listed in the Glue42 Core Extension UI. Defaults to false. 
+             */
+            hidden?: boolean;
         }
 
         /** Object describing an application. */
