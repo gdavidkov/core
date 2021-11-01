@@ -90,6 +90,8 @@ describe("close() Should", () => {
         ]
     };
 
+    before(() => coreReady);
+    
     afterEach(async () => {
         const wsps = await glue.workspaces.getAllWorkspaces();
         await Promise.all(wsps.map((wsp) => wsp.close()));
