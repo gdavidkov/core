@@ -1,3 +1,5 @@
+2.2.1
+fix: Internal constraints logic improvement
 2.2.0
 feat: Added improved behavior of maximized components being manipulated
 2.1.6
