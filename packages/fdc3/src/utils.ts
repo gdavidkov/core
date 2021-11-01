@@ -92,6 +92,8 @@ export const isEmptyObject = (obj: object): boolean => {
 
 export const isGlue42Core = !navigator.userAgent.toLowerCase().includes(" electron/");
 
+export const isGlue42Electron = !!(window as any).glue42electron;
+
 export const AsyncListener = (actualUnsub:
     (() => void)
     | Promise<() => void>

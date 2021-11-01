@@ -1,7 +1,7 @@
 import createDesktopAgent from "./agent";
 import Glue, { Glue42 } from "@glue42/desktop";
 import { Glue42Web } from "@glue42/web";
-import { isGlue42Core, waitFor, fetchTimeout } from "./utils";
+import { isGlue42Core, waitFor, fetchTimeout, isGlue42Electron } from "./utils";
 import { version } from "../package.json";
 import { WindowType } from "./types/windowtype";
 import { Glue42GD, Glue42GDOriginalGlue } from "./types/glue42gd";
@@ -45,16 +45,17 @@ const setupGlue42Core = (): void => {
 };
 
 const setupGlue42Enterprise = (): void => {
-    (window as WindowType).fdc3GluePromise = waitFor<void>(() => typeof (window as WindowType).glue42gd !== "undefined", 300)
+    (window as WindowType).fdc3GluePromise = waitFor<void>(() => typeof (window as WindowType).glue42gd !== "undefined" || typeof (window as any).glue42electron !== "undefined", 300)
         .then(() => {
             // Whether to initialize glue or to reuse an existing instance.
-            const shouldInitGlue = ((window as WindowType).glue42gd as Glue42GD).fdc3InitsGlue;
+            const shouldInitGlue = isGlue42Electron  || ((window as WindowType).glue42gd as Glue42GD).fdc3InitsGlue;
 
             if (shouldInitGlue) {
                 // Use the auto-injected Glue factory function if available.
                 const GlueFactory = (window as WindowType).Glue || Glue;
 
                 return GlueFactory({
+                    activities: false,
                     channels: true,
                     appManager: "full"
                 });
@@ -74,7 +75,7 @@ const setupGlue42Enterprise = (): void => {
 };
 
 const setupGlue = (): void => {
-    if (isGlue42Core) {
+    if (isGlue42Core && !isGlue42Electron) {
         setupGlue42Core();
     } else {
         setupGlue42Enterprise();
