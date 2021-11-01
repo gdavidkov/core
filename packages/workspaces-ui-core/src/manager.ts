@@ -749,7 +749,7 @@ export class WorkspacesManager {
 
 
         if (!workspace.windows.length && emptyWorkspaceCheck) {
-            this.checkForEmptyWorkspace(workspace);
+            this._controller.resetWorkspace(workspace.id);
         }
     }
 

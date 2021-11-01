@@ -161,7 +161,7 @@ describe("addWindow() Should", () => {
                 }).catch(() => done());
             });
 
-            Array.from(["row", "column", "group"]).forEach((maximizedParentType)=>{
+            Array.from(["row", "column", "group"]).forEach((maximizedParentType) => {
                 it(`reject when the parent is a ${parentType} and there is a maximized ${maximizedParentType} in the workspace`, (done) => {
                     const parent = workspace.getAllBoxes().find(p => p.type === maximizedParentType);
                     const box = workspace.getAllBoxes().find(p => p.type === parentType);
@@ -179,7 +179,7 @@ describe("addWindow() Should", () => {
                     }).catch(() => done());
                 });
             })
-          
+
 
             Array.from(["42", 42, [], {}, undefined, null]).forEach((input) => {
                 it(`reject when the parent is ${parentType} and the argument is ${JSON.stringify(input)}`, (done) => {
@@ -214,7 +214,7 @@ describe("addWindow() Should", () => {
         });
 
         it(`add the window and update the workspace constraints when the parent is a row and the window has constraints`, async () => {
-            const parent = workspace.getAllRows()[0];
+            const parent = workspace.getAllRows().find(r => !r.children.length);
             const window = await parent.addWindow({
                 type: "window",
                 appName: "noGlueApp",
@@ -235,7 +235,7 @@ describe("addWindow() Should", () => {
         });
 
         it(`add the window and update the workspace constraints when the parent is a column and the window has constraints`, async () => {
-            const parent = workspace.getAllColumns()[0];
+            const parent = workspace.getAllColumns().find(r => !r.children.length);
             const window = await parent.addWindow({
                 type: "window",
                 appName: "noGlueApp",
@@ -294,7 +294,7 @@ describe("addWindow() Should", () => {
         });
 
         it(`add the window and not update the workspace constraints when the parent is a row and the window has invalid width constraints`, async () => {
-            const parent = workspace.getAllRows()[0];
+            const parent = workspace.getAllRows().find(r => !r.children.length);
             const window = await parent.addWindow({
                 type: "window",
                 appName: "noGlueApp",
@@ -313,7 +313,7 @@ describe("addWindow() Should", () => {
         });
 
         it(`add the window and not update the workspace constraints when the parent is a row and the window has invalid height constraints`, async () => {
-            const parent = workspace.getAllRows()[0];
+            const parent = workspace.getAllRows().find(r => !r.children.length);
             const window = await parent.addWindow({
                 type: "window",
                 appName: "noGlueApp",
@@ -633,7 +633,7 @@ describe("addWindow() Should", () => {
             expect(window.showCloseButton).to.be.false;
         });
 
-        it(`lock the window when the paret is a row and locking config has been passed`, async () => {
+        it(`lock the window when the parent is a row and locking config has been passed`, async () => {
             const secondWorkspace = await glue.workspaces.createWorkspace({
                 children: [
                     {
@@ -656,6 +656,68 @@ describe("addWindow() Should", () => {
 
             expect(window.allowExtract).to.be.false;
             expect(window.showCloseButton).to.be.false;
+        });
+
+        it("preserve the placeholder element when the window is added to a parent element of the placeholder and the parent is a row", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const row = await workspace.addRow();
+            await row.addColumn();
+            await row.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllColumns().length).to.eql(1);
+        });
+
+        it("preserve the placeholder element when the window is added to a parent element of the placeholder and the parent is a column", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const column = await workspace.addColumn();
+            await column.addRow();
+            await column.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllRows().length).to.eql(1);
+        });
+
+        it("preserve the placeholder element when the window is added to a parent (not immediate) element of the placeholder  and the parent is a row", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const row = await workspace.addRow();
+            const column = await row.addColumn();
+            await column.addRow();
+            await row.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllColumns().length).to.eql(1);
+        });
+
+        it("preserve the placeholder element when the window is added to a parent (not immediate) element of the placeholder and the parent is a column", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const column = await workspace.addColumn();
+            const row = await column.addRow();
+            await row.addColumn();
+            await column.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllRows().length).to.eql(1);
+        });
+
+        it("preserve the placeholder element when the window is added to a parent element of the placeholder and the parent is a row and the placeholder is in a group", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const row = await workspace.addRow();
+            await row.addGroup();
+            await row.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllGroups().length).to.eql(1);
+        });
+
+        it("preserve the placeholder element when the window is added to a parent element of the placeholder and the parent is a column and the placeholder is in a group", async () => {
+            const workspace = await glue.workspaces.createWorkspace({ children: [] })
+            const column = await workspace.addColumn();
+            await column.addGroup();
+            await column.addWindow({ appName: "noGlueApp" });
+            await workspace.refreshReference();
+
+            expect(workspace.getAllGroups().length).to.eql(1);
         });
 
         describe("complex", () => {

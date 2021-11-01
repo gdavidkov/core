@@ -943,6 +943,46 @@ describe("addGroup() Should", () => {
         expect(group.children[0].allowExtract).to.be.true;
     });
 
+    it("preserve the placeholder element when the group with a window is added to a parent element of the placeholder and the parent is a row", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const row = await workspace.addRow();
+        await row.addColumn();
+        await row.addGroup({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllColumns().length).to.eql(1);
+    });
+
+    it("preserve the placeholder element when the group with a window is added to a parent element of the placeholder and the parent is a column", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const column = await workspace.addColumn();
+        await column.addRow();
+        await column.addGroup({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllRows().length).to.eql(1);
+    });
+
+    it("preserve the placeholder element when the group with a window is added to a parent element of the placeholder and the parent is a row and the placeholder is in a group", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const row = await workspace.addRow();
+        await row.addGroup();
+        await row.addGroup({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllGroups().length).to.eql(2);
+    });
+
+    it("preserve the placeholder element when the group with a window is added to a parent element of the placeholder and the parent is a column and the placeholder is in a group", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const column = await workspace.addColumn();
+        await column.addGroup();
+        await column.addGroup({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllGroups().length).to.eql(2);
+    });
+
     it("reject when the parent is a group and is passed a group definition", (done) => {
         const allBoxes = workspace.getAllBoxes();
         const group = allBoxes.find(p => p.type === "group");
