@@ -6,7 +6,7 @@ import { ContextMessageReplaySpec } from "./contexts/contextMessageReplaySpec";
 import { version as pjsonVersion } from "../package.json";
 import { ConnectionSettings } from "./connection/types";
 
-export default function (configuration: Glue42Core.Config, ext: Glue42Core.Extension, glue42gd: Glue42Core.GDObject | undefined): InternalConfig {
+export default function(configuration: Glue42Core.Config, ext: Glue42Core.Extension, glue42gd: Glue42Core.GDObject | undefined): InternalConfig {
 
     let nodeStartingContext: GDStaringContext;
     if (Utils.isNode()) {
@@ -73,6 +73,14 @@ export default function (configuration: Glue42Core.Config, ext: Glue42Core.Exten
                 region = nodeStartingContext.region;
                 instanceId = nodeStartingContext.instanceId;
             }
+        } else if (typeof window?.glue42electron !== "undefined") {
+            windowId = window?.glue42electron.instanceId;
+            pid = window?.glue42electron.pid;
+            environment = window?.glue42electron.env;
+            region = window?.glue42electron.region;
+            // G4E-1668
+            uniqueAppName = window?.glue42electron.application ?? "glue-app";
+            instanceId = window?.glue42electron.instanceId;
         } else {
             // this is the case where this is is running in Glue42 Core V2
             // in this case the windowId of the identity is set by the WebTransport, because it needs to communicate with possible parents
@@ -112,6 +120,10 @@ export default function (configuration: Glue42Core.Config, ext: Glue42Core.Exten
 
         if (glue42gd) {
             return glue42gd.applicationName;
+        }
+
+        if (window?.glue42electron) {
+            return window?.glue42electron.application;
         }
 
         const uid = generate();

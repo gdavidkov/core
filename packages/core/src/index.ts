@@ -96,6 +96,12 @@ const GlueCore = (userConfig?: Glue42Core.Config, ext?: Glue42Core.Extension): P
                             gatewayToken: token
                         };
                     });
+            } else if (window?.glue42electron) {
+                if (typeof window.glue42electron.gwToken === "string") {
+                    authPromise = Promise.resolve({
+                        gatewayToken: window.glue42electron.gwToken
+                    });
+                }
             } else {
                 // assign to auth promise so we ca cleanup the connection
                 authPromise = Promise.reject("You need to provide auth information");
@@ -344,7 +350,7 @@ const GlueCore = (userConfig?: Glue42Core.Config, ext?: Glue42Core.Extension): P
         if (glue.agm) {
             const deprecatedDecorator = (fn: any, wrong: string, proper: string) => {
                 // tslint:disable-next-line:only-arrow-functions
-                return function () {
+                return function() {
                     // tslint:disable-next-line:no-console
                     glue.logger.warn(`glue.js - 'glue.agm.${wrong}' method is deprecated, use 'glue.interop.${proper}' instead.`);
                     return fn.apply(glue.agm, arguments);

@@ -1688,5 +1688,15 @@ declare global {
         glueDesktop?: Glue42Core.GlueDesktopObject;
         glue42gd?: Glue42Core.GDObject;
         gdPreloadPromise: Promise<Glue42Core.GDObject>;
+        glue42electron?: {
+            context: unknown;
+            env: string;
+            region: string;
+            gwToken: string;
+            gwURL: string;
+            instanceId: string;
+            application: string;
+            pid: number;
+        };
     }
 }
