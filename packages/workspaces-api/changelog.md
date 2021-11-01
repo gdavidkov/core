@@ -1,3 +1,5 @@
+1.8.2
+chore: bump due to dependencies update
 1.8.1
 chore: added noTabHeader to the workspace restore options
 1.8.0

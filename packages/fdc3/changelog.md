@@ -1,3 +1,5 @@
+2.2.14
+feat: add support for glue42/electron when running in Electron with contextIsolation: true
 2.2.13
 chore: bump due to dependencies update
 2.2.12

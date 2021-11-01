@@ -1,6 +1,6 @@
 {
     "name": "@glue42/core",
-    "version": "5.4.13",
+    "version": "5.4.14",
     "description": "Glue42 core library",
     "main": "dist/core.umd.js",
     "module": "dist/core.es.js",
