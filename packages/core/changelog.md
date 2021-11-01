@@ -1,3 +1,5 @@
+5.4.14
+feat: add support for glue42/electron in core
 5.4.13
 chore: minor changes to package.json
 5.4.12

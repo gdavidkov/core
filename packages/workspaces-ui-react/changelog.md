@@ -1,3 +1,5 @@
+1.5.3
+chore: bump due to dependencies update
 1.5.2
 feat: added a MoveArea component
 1.5.1
