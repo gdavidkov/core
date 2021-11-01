@@ -10,7 +10,7 @@ if (typeof globalFdc3 === "undefined") {
     const runningInElectron = process && (process as any).contextIsolated;
     if (hasGlue42electron && runningInElectron) {
         const contextBridge = require("electron").contextBridge;
-        contextBridge.exposeInMainWorld("fdc3", window.fdc3);
+        contextBridge.exposeInMainWorld("fdc3", globalFdc3);
     }
     (window as WindowType).fdc3 = globalFdc3;
 } else {
