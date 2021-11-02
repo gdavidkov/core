@@ -299,7 +299,7 @@ describe("removeChild() Should", () => {
         const boxes = workspace.getAllBoxes();
         const windows = workspace.getAllWindows();
 
-        expect(boxes.length).to.eql(2); // It has an underlying column
+        expect(boxes.length).to.eql(1);
         expect(windows.length).to.eql(1);
     });
 
@@ -575,7 +575,7 @@ describe("removeChild() Should", () => {
         const boxes = workspace.getAllBoxes();
         const windows = workspace.getAllWindows();
 
-        expect(boxes.length).to.eql(2); // it has an underlying column
+        expect(boxes.length).to.eql(1);
         expect(windows.length).to.eql(1);
     });
 

@@ -435,7 +435,7 @@ export class WorkspacesManager {
         return this._glue.windows.my().moveTo(location.y, location.x);
     }
 
-    public getFrameSummary(itemId: string) {
+    public getFrameSummary(itemId: string): { id: string } {
         const workspace = store.getByContainerId(itemId) || store.getByWindowId(itemId) || store.getById(itemId);
         const isFrameId = this._frameId === itemId;
 
@@ -696,7 +696,7 @@ export class WorkspacesManager {
         }
     }
 
-    public async hibernateWorkspace(workspaceId: string) {
+    public async hibernateWorkspace(workspaceId: string): Promise<GoldenLayout.Config> {
         const workspace = store.getById(workspaceId);
 
         if (store.getActiveWorkspace().id === workspace.id) {
@@ -726,7 +726,7 @@ export class WorkspacesManager {
         return snapshot;
     }
 
-    public closeTab(item: GoldenLayout.ContentItem, emptyWorkspaceCheck: boolean = true) {
+    public closeTab(item: GoldenLayout.ContentItem, emptyWorkspaceCheck = true): void {
         const itemId = idAsString(item.config.id);
         const workspace = store.getByWindowId(itemId);
         const windowSummary = this.stateResolver.getWindowSummarySync(itemId);
@@ -749,11 +749,11 @@ export class WorkspacesManager {
 
 
         if (!workspace.windows.length && emptyWorkspaceCheck) {
-            this.checkForEmptyWorkspace(workspace);
+            this._controller.resetWorkspace(workspace.id);
         }
     }
 
-    public resizeItem(args: ResizeItemArguments) {
+    public resizeItem(args: ResizeItemArguments): void {
         if (args.itemId === this.frameId) {
             throw new Error(`Cannot resize frame ${args.itemId}`);
         } else {
@@ -830,7 +830,7 @@ export class WorkspacesManager {
         }
     }
 
-    private async initLayout() {
+    private async initLayout(): Promise<void> {
         const workspacesSystemSettings = await systemSettings.getSettings(this._glue);
         const config = await this._layoutsManager.getInitialConfig();
 
@@ -868,7 +868,7 @@ export class WorkspacesManager {
         }
     }
 
-    private async reinitializeWorkspace(id: string, config: GoldenLayout.Config) {
+    private async reinitializeWorkspace(id: string, config: GoldenLayout.Config): Promise<void> {
         await this._controller.reinitializeWorkspace(id, config);
 
         const workspacesSystemSettings = await systemSettings.getSettings(this._glue);
@@ -876,7 +876,7 @@ export class WorkspacesManager {
         this.handleWindows(id, loadingStrategy);
     }
 
-    private subscribeForLayout() {
+    private subscribeForLayout(): void {
         this._controller.emitter.onContentItemResized((target, id) => {
             this._frameController.moveFrame(id, getElementBounds(target));
         });
@@ -1460,7 +1460,7 @@ export class WorkspacesManager {
         let hasFoundIsPinned = false;
         const clone = JSON.parse(JSON.stringify(data));
 
-        const traverseAndClean = (item: GoldenLayout.ItemConfig) => {
+        const traverseAndClean = (item: GoldenLayout.ItemConfig): void => {
             if (item.workspacesConfig.isPinned) {
                 hasFoundIsPinned = true;
                 item.workspacesConfig.isPinned = false;
@@ -1508,7 +1508,7 @@ export class WorkspacesManager {
         traverseAndApply(initialConfig, currentConfig as GoldenLayout.ContentItem);
     }
 
-    private handleOnWorkspaceAdded(workspace: Workspace) {
+    private handleOnWorkspaceAdded(workspace: Workspace): void {
         const allOtherWindows = store.workspaceIds.filter((wId) => wId !== workspace.id).reduce((acc, w) => {
             return [...acc, ...store.getById(w).windows];
         }, []);

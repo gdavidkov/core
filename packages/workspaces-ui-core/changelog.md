@@ -1,3 +1,5 @@
+1.5.4
+fix: improvements around empty placeholder behavior and general workspace structure
 1.5.3
 chore: bump due to dependencies update
 1.5.2

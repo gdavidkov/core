@@ -220,6 +220,19 @@ describe('addGroup() Should ', function () {
         })
     });
 
+    it("add the group successfully when the workspace has been populated by replacing a placeholder and the window has been closed", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] });
+
+        const group = await workspace.addGroup();
+        const window = await group.addWindow({ appName: "noGlueApp" });
+
+        await window.close();
+
+        await workspace.addGroup();
+
+        expect(workspace.getAllGroups().length).to.eql(1);
+    });
+
     describe("", () => {
         beforeEach(async () => {
             await glue.workspaces.createWorkspace(basicConfig);

@@ -102,7 +102,7 @@ export class LayoutController {
 
         this.registerWindowComponent(workspace.layout, idAsString(placementId));
 
-        const emptyVisibleWindow = contentItem.getComponentsByName(this._emptyVisibleWindowName)[0];
+        const emptyVisibleWindow: GoldenLayout.ContentItem = this.getImmediateChildEmptyWindow(contentItem);
 
         const workspaceContentItem = store.getWorkspaceContentItem(workspace.id);
         const workspaceWrapper = new WorkspaceWrapper(this._stateResolver, workspace, workspaceContentItem, this._frameId);
@@ -142,12 +142,13 @@ export class LayoutController {
                     ...options
                 };
                 // Replacing the whole stack in order to trigger the header logic and the properly update the title
-                emptyVisibleWindow.parent.parent.replaceChild(emptyVisibleWindow.parent, group);
-
+                emptyVisibleWindow.parent.parent.replaceChild(emptyVisibleWindow.parent as GoldenLayout.ContentItem, group);
+                workspace.windows = workspace.windows.filter((w) => w.id !== idAsString(emptyVisibleWindow.config.id));
                 return;
             } else if (emptyVisibleWindow) {
                 // Triggered when the API level parent is an empty group/column
                 emptyVisibleWindow.parent.replaceChild(emptyVisibleWindow, config);
+                workspace.windows = workspace.windows.filter((w) => w.id !== idAsString(emptyVisibleWindow.config.id));
                 return;
             }
             contentItem.addChild(config);
@@ -245,7 +246,7 @@ export class LayoutController {
 
             if (groupWrapperChild?.contentItems.length === 1 && hasGroupWrapperAPlaceholder) {
                 const emptyVisibleWindow = contentItem.getComponentsByName(this._emptyVisibleWindowName)[0];
-
+                workspace.windows = workspace.windows.filter((w) => w.id !== emptyVisibleWindow.config.id);
                 emptyVisibleWindow.parent.replaceChild(emptyVisibleWindow, config);
             } else {
                 contentItem.addChild(config);
@@ -262,7 +263,11 @@ export class LayoutController {
 
         const contentItem = workspace.layout.root.getItemsById(itemId)[0];
 
-        contentItem.remove();
+        if (contentItem.parent.isRoot) {
+            this.resetWorkspace(workspace.id);
+        } else {
+            contentItem.remove();
+        }
     }
 
     public bundleWorkspace(workspaceId: string, type: "row" | "column"): void {
@@ -333,6 +338,25 @@ export class LayoutController {
         }
         store.removeById(workspaceId);
         workspaceToBeRemoved.remove();
+    }
+
+    public async resetWorkspace(workspaceId: string): Promise<void> {
+        const workspace = store.getById(workspaceId);
+        workspace.hibernatedWindows = [];
+        workspace.windows
+            .filter((w) => w.appName || (w as any).windowId)
+            .map(async (w) => {
+                const item = store.getWindowContentItem(w.id);
+                if (item) {
+                    this.emitter.raiseEvent("tab-close-requested", { item });
+                }
+            });
+        const windowContentItems = workspace.layout.root.getItemsByType("component");
+        windowContentItems.forEach((wci) => {
+            wci.remove();
+        });
+        store.removeLayout(workspace.id);
+        this.showAddButton(workspace.id);
     }
 
     public changeTheme(themeName: string): void {
@@ -1214,30 +1238,10 @@ export class LayoutController {
             config = {
                 settings: this._configFactory.getDefaultWorkspaceSettings(),
                 content: [
-                    {
-                        type: "column",
-                        content: [
-                            config
-                        ],
-                        workspacesConfig: {}
-                    }
+                    config
                 ]
             };
         }
-        if (config.type !== "component" && config.content[0].type === "stack") {
-            // Wrap the component in a column when your top element is stack;
-            config = {
-                ...config,
-                content: [
-                    {
-                        type: "column",
-                        content: config.content,
-                        workspacesConfig: {}
-                    }
-                ]
-            };
-        }
-
         const workspaceContentItem = store.getWorkspaceContentItem(id);
 
         // TODO fix typings
@@ -1248,7 +1252,6 @@ export class LayoutController {
 
         workspaceContentItem.config.workspacesConfig = mergedOptions;
         (config as GoldenLayout.Config).workspacesOptions = mergedOptions;
-
         const layout = new GoldenLayout(config as GoldenLayout.Config, $(`#nestHere${id}`));
         store.addOrUpdate(id, []);
 
@@ -1876,5 +1879,35 @@ export class LayoutController {
                 itemConfig.workspacesConfig.allowExtract = workspaceWrapper.showWindowCloseButtons;
             }
         }
+    }
+
+    private getImmediateChildEmptyWindow = (contentItem: GoldenLayout.ContentItem): GoldenLayout.ContentItem => {
+        if (contentItem.type === "component") {
+            if (contentItem.config.componentName === EmptyVisibleWindowName) {
+                return contentItem;
+            }
+
+            return;
+        }
+
+        if (contentItem.type === "stack") {
+            return contentItem.getComponentsByName(EmptyVisibleWindowName)[0];
+        }
+
+        return contentItem.contentItems.reduce((acc, ci) => {
+            if (acc) {
+                return acc;
+            }
+
+            if (ci.type === "component") {
+                if (ci.config.componentName === EmptyVisibleWindowName) {
+                    return ci;
+                }
+
+                return;
+            }
+
+            return ci.contentItems.find(ci => ci.type === "component" && ci.config.componentName === EmptyVisibleWindowName);
+        }, undefined);
     }
 }

@@ -1,3 +1,5 @@
+2.3.4
+chore: updated the react dependencies
 2.3.3
 chore: bump due to dependencies update
 2.3.2

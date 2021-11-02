@@ -161,6 +161,34 @@ describe("addColumn() Should", () => {
         expect(column.constructor.name).to.eql("Column");
     });
 
+    it("add a single column when the workspace's root element has been closed", async () => {
+        const emptyWorkspace = await glue.workspaces.createWorkspace({ children: [] });
+        const column = await emptyWorkspace.addColumn();
+
+        await column.addRow();
+        await column.addRow();
+        await column.close();
+        await emptyWorkspace.addColumn();
+        await emptyWorkspace.refreshReference();
+
+        const boxesInWorkspace = emptyWorkspace.getAllBoxes();
+
+        expect(boxesInWorkspace.length).to.eql(1);
+    });
+
+    it("add multiple empty columns to an empty row when the workspace is empty", async ()=>{
+        const emptyWorkspace = await glue.workspaces.createWorkspace({ children: [] });
+        const row = await emptyWorkspace.addRow();
+
+        await row.addColumn();
+        await row.addColumn();
+        await row.addColumn();
+
+        const columnsInWorkspace = emptyWorkspace.getAllColumns();
+
+        expect(columnsInWorkspace.length).to.eql(3);
+    });
+
     it("add the column when the box parent is a row and is without arguments", async () => {
         const allBoxes = workspace.getAllBoxes();
         const row = allBoxes.find(p => p.type === "row");
@@ -449,6 +477,26 @@ describe("addColumn() Should", () => {
         await workspace.refreshReference();
 
         expect(column.width > column.minWidth).to.be.true;
+    });
+
+    it("preserve the placeholder element when the column with a window is added to a parent element of the placeholder and the parent is a row", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const row = await workspace.addRow();
+        await row.addColumn();
+        await row.addColumn({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllColumns().length).to.eql(2);
+    });
+
+    it("preserve the placeholder element when the column with a window is added to a parent element of the placeholder and the parent is a row and the placeholder is in a group", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] })
+        const row = await workspace.addRow();
+        await row.addGroup();
+        await row.addColumn({ children: [{ appName: "noGlueApp", type: "window" }] });
+        await workspace.refreshReference();
+
+        expect(workspace.getAllGroups().length).to.eql(1);
     });
 
     describe("", () => {

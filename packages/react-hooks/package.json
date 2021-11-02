@@ -39,8 +39,8 @@
     },
     "license": "MIT",
     "peerDependencies": {
-        "react": "^16.13.1",
-        "react-dom": "^16.13.1"
+        "react": ">=16.13.1",
+        "react-dom": ">=16.13.1"
     },
     "devDependencies": {
         "@testing-library/react-hooks": "^3.2.1",

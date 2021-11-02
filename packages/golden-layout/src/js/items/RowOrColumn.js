@@ -445,7 +445,7 @@ lm.utils.copy(lm.items.RowOrColumn.prototype, {
 	 */
 	_respectItemWidthConstraints: function () {
 		var minItemWidth = this.layoutManager.config.dimensions ? (this.layoutManager.config.dimensions.minItemWidth || 0) : 0,
-			maxItemWidth = this.layoutManager.config.dimensions ? (this.layoutManager.config.dimensions.minItemWidth || 32767) : 32767,
+			maxItemWidth = this.layoutManager.config.dimensions ? (this.layoutManager.config.dimensions.maxItemWidth || 32767) : 32767,
 			sizeData = null,
 			entriesOverMin = [],
 			entriesUnderMax = [],

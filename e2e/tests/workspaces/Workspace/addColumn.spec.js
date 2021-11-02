@@ -148,6 +148,19 @@ describe('addColumn() Should ', function () {
             expect(columnChildren.length).to.eql(0);
         });
     });
+    
+    it("add the row successfully when the workspace has been populated by replacing a placeholder and the window has been closed", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] });
+
+        const column = await workspace.addColumn();
+        const group = await column.addGroup();
+        const window = await group.addWindow({ appName: "noGlueApp" });
+
+        await window.close();
+        await workspace.addColumn();
+
+        expect(workspace.getAllColumns().length).to.eql(1);
+    });
 
     describe("", () => {
         // Not focused

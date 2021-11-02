@@ -100,6 +100,21 @@ describe('addRow() Should ', function () {
         })
     });
 
+    it("add the row successfully when the workspace has been populated by replacing a placeholder and the window has been closed", async () => {
+        const workspace = await glue.workspaces.createWorkspace({ children: [] });
+
+        const row = await workspace.addRow();
+        const group = await row.addGroup();
+        const window = await group.addWindow({ appName: "noGlueApp" });
+
+        await window.close();
+
+        await workspace.addRow();
+
+        expect(workspace.getAllRows().length).to.eql(1);
+    });
+
+
     describe("", () => {
         beforeEach(async () => {
             await glue.workspaces.createWorkspace(basicConfig);

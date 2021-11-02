@@ -188,8 +188,8 @@ export class WorkspacesConfigurationFactory {
         };
     }
 
-    public wrapInGroup(content: GoldenLayout.ComponentConfig[]) {
-        return this.wrap(content, "stack");
+    public wrapInGroup(content: GoldenLayout.ComponentConfig[]): GoldenLayout.StackConfig {
+        return this.wrap(content, "stack") as GoldenLayout.StackConfig;
     }
 
     public getAppNameFromWindowId(windowId: string) {
@@ -207,7 +207,7 @@ export class WorkspacesConfigurationFactory {
         };
     }
 
-    private wrap(content: GoldenLayout.ComponentConfig[], wrapper: "stack" | "row" | "column") {
+    private wrap(content: GoldenLayout.ComponentConfig[], wrapper: "stack" | "row" | "column"): GoldenLayout.ItemConfig {
         return {
             workspacesConfig: {
                 wrapper: true
