@@ -211,9 +211,6 @@ export namespace Glue42Core {
         /** Contexts library. */
         contexts: Glue42Core.Contexts.API;
 
-        /** Brings up the Glue42 Desktop feedback dialog. */
-        feedback: (info?: FeedbackInfo) => void;
-
         /** Info object containing versions of all included libraries and Glue42 itself. */
         info: object;
 
@@ -237,6 +234,9 @@ export namespace Glue42Core {
          * The config used by the library. This is a transformed and possibly extended version of the userConfig object
          */
         config?: any;
+
+        /** Brings up the Glue42 Desktop feedback dialog. */
+         feedback(): (info?: FeedbackInfo) => void;
 
         /**
          * Disposes Glue42 API. This will remove all Interop methods and streams registered by the application.
