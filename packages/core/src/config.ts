@@ -122,8 +122,8 @@ export default function(configuration: Glue42Core.Config, ext: Glue42Core.Extens
             return glue42gd.applicationName;
         }
 
-        if (window?.glue42electron) {
-            return window?.glue42electron.application;
+        if (typeof window !== "undefined" && typeof window.glue42electron !== "undefined") {
+            return window.glue42electron.application;
         }
 
         const uid = generate();
