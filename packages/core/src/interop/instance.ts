@@ -39,6 +39,10 @@ export class InstanceWrapper {
     }
 
     private refreshWrappedObject(resolvedIdentity: Glue42Core.Interop.Instance) {
+        Object.keys(resolvedIdentity).forEach((key) => {
+            (this.wrapped as any)[key] = (resolvedIdentity as any)[key];
+        });
+
         this.wrapped.user = resolvedIdentity.user;
         this.wrapped.instance = resolvedIdentity.instance;
         this.wrapped.application = resolvedIdentity.application ?? generate();

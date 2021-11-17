@@ -5,23 +5,25 @@ import { Glue42Core } from "../../glue";
 let currentGlue: Glue42Core.GlueCore | undefined;
 type cbk = (err: any, glue?: Glue42Core.GlueCore, config?: Glue42Core.Config) => void;
 
+export const baseGlueConfig: Glue42Core.Config = {
+    gateway: {
+        protocolVersion: 3,
+        inproc: {
+            facade: gwObject
+        }
+    },
+    auth: {
+        username: "t42",
+        password: "test"
+    },
+    logger: "error",
+    application: "test-application"
+};
+
 export async function init(callback: cbk, custom?: Glue42Core.Config, ext?: Glue42Core.Extension) {
 
     await ready.then();
-    let config: Glue42Core.Config = {
-        gateway: {
-            protocolVersion: 3,
-            inproc: {
-                facade: gwObject
-            }
-        },
-        auth: {
-            username: "t42",
-            password: "test"
-        },
-        logger: "error",
-        application: "test-application"
-    };
+    let config: Glue42Core.Config = baseGlueConfig;
 
     if (custom) {
         config = custom;

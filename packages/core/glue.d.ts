@@ -47,6 +47,11 @@ export namespace Glue42Core {
          * - `sspi` - using `sessionId` and authentication challenge callback;
          */
         auth?: Glue42Core.Auth | string;
+
+        /**
+         * Specify custom identity fields. Those can also override some of the system fields assigned
+         */
+        identity?: { [key: string]: string | number | boolean };
     }
 
     /** Configurations for the Glue42 Gateway connection. */

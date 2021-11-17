@@ -1,3 +1,9 @@
+2.3.2
+fix: Improved electron checks & added glue42EnterpriseConfig global variable
+2.3.1
+chore: bump due to dependencies update
+2.3.0
+feat: updated to the latest core
 2.2.15
 feat: add support for glue42/electron when running in Electron with contextIsolation: true
 2.2.14

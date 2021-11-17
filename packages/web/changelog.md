@@ -1,3 +1,7 @@
+2.4.1
+chore: bump due to dependencies update
+2.4.0
+chore: updated to the latest core
 2.3.3
 chore: bump due to dependencies update
 2.3.2

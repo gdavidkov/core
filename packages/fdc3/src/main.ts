@@ -1,7 +1,7 @@
 import createDesktopAgent from "./agent";
 import Glue, { Glue42 } from "@glue42/desktop";
 import { Glue42Web } from "@glue42/web";
-import { isGlue42Core, waitFor, fetchTimeout, isGlue42Electron } from "./utils";
+import { isInElectron, waitFor, fetchTimeout, isGlue42Electron } from "./utils";
 import { version } from "../package.json";
 import { WindowType } from "./types/windowtype";
 import { Glue42GD, Glue42GDOriginalGlue } from "./types/glue42gd";
@@ -44,11 +44,24 @@ const setupGlue42Core = (): void => {
         });
 };
 
-const setupGlue42Enterprise = (): void => {
+const setupGlue42Enterprise = (isInBrowser = false): void => {
+    if (isInBrowser) {
+        const config = (window as WindowType).glue42EnterpriseConfig;
+        if (config) {
+            (window as WindowType).fdc3GluePromise = Glue({
+                activities: false,
+                channels: true,
+                appManager: "full",
+                ...config
+            }).then(resolveGlue);
+            return;
+        }
+    }
+
     (window as WindowType).fdc3GluePromise = waitFor<void>(() => typeof (window as WindowType).glue42gd !== "undefined" || typeof (window as any).glue42electron !== "undefined", 300)
         .then(() => {
             // Whether to initialize glue or to reuse an existing instance.
-            const shouldInitGlue = isGlue42Electron  || ((window as WindowType).glue42gd as Glue42GD).fdc3InitsGlue;
+            const shouldInitGlue = isGlue42Electron || ((window as WindowType).glue42gd as Glue42GD).fdc3InitsGlue;
 
             if (shouldInitGlue) {
                 // Use the auto-injected Glue factory function if available.
@@ -75,15 +88,20 @@ const setupGlue42Enterprise = (): void => {
 };
 
 const setupGlue = (): void => {
-    if (isGlue42Core && !isGlue42Electron) {
-        setupGlue42Core();
+    if (!isInElectron && !isGlue42Electron) {
+        if ((window as WindowType).glue42EnterpriseConfig) {
+            // enterprise in browser
+            setupGlue42Enterprise(true);
+        } else {
+            setupGlue42Core();
+        }
     } else {
         setupGlue42Enterprise();
     }
 };
 
 const connectToRemoteSources = (): void => {
-    if (isGlue42Core) {
+    if (!isInElectron) {
         (window as WindowType).fdc3GluePromise.then(() => {
             const validRemoteSources = (window as WindowType).remoteSources?.filter((remoteSource) => typeof remoteSource.url === "string" && remoteSource.url !== "") || [];
 
