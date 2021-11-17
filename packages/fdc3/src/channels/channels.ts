@@ -3,7 +3,7 @@ import { SystemChannel, AppChannel } from "./channel";
 import { WindowType } from "../types/windowtype";
 import {
     getChannelsList,
-    isGlue42Core,
+    isInElectron,
     newSubscribe,
     isEmptyObject,
     AsyncListener
@@ -29,7 +29,7 @@ const createChannelsAgent = (): ChannelsAPI => {
         const current = (window as WindowType).glue.channels.current();
 
         // In Glue42 Core the channel selector widget needs to use the FDC3 Channels API instead of the Glue42 Channels API to navigate between the channels.
-        if (!isGlue42Core) {
+        if (isInElectron) {
             if (typeof current !== "undefined") {
                 handleSwitchChannelUI(current);
             }

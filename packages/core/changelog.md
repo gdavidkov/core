@@ -1,3 +1,5 @@
+5.5.0
+feat: add support for passing custom identity
 5.4.14
 feat: add support for glue42/electron in core
 5.4.13

@@ -90,7 +90,7 @@ export const isEmptyObject = (obj: object): boolean => {
     return Object.keys(obj).length === 0 && obj.constructor === Object;
 };
 
-export const isGlue42Core = !navigator.userAgent.toLowerCase().includes(" electron/");
+export const isInElectron = navigator.userAgent.toLowerCase().includes(" electron/");
 
 export const isGlue42Electron = !!(window as any).glue42electron;
 

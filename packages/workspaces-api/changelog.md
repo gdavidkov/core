@@ -1,5 +1,5 @@
-1.8.3
-feat: added waitForFrame method
+1.9.0
+feat: added waitForFrame method and updated to the latest core
 1.8.2
 chore: bump due to dependencies update
 1.8.1

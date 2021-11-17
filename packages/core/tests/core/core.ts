@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { init as initGlue, shutdown } from "./base";
+import { baseGlueConfig, init as initGlue, shutdown } from "./base";
 import { defaultWS } from "../initializer";
 // tslint:disable:no-unused-expression
 
@@ -28,7 +28,7 @@ describe("core", () => {
                 done(err);
                 return;
             }
-            if (!glue){
+            if (!glue) {
                 done("glue is undefined");
                 return;
             }
@@ -74,6 +74,30 @@ describe("core", () => {
                 return;
             }
             done("should not be here");
+        }, userConfig);
+    });
+
+    it("can override identity", (done) => {
+        const userConfig = baseGlueConfig;
+        userConfig.identity = {
+            region: "test",
+            custom: 2
+        };
+        initGlue((err, glue) => {
+            if (err) {
+                done(err);
+                return;
+            }
+            if (!glue) {
+                done("glue is undefined");
+                return;
+            }
+            console.log(glue.interop.instance);
+            expect(glue.interop.instance.region).to.be.eq("test");
+            expect((glue.interop.instance as any).custom).to.be.eq(2);
+
+
+            done();
         }, userConfig);
     });
 });

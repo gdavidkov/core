@@ -96,7 +96,7 @@ const GlueCore = (userConfig?: Glue42Core.Config, ext?: Glue42Core.Extension): P
                             gatewayToken: token
                         };
                     });
-            } else if (window?.glue42electron) {
+            } else if (typeof window !== "undefined" && window?.glue42electron) {
                 if (typeof window.glue42electron.gwToken === "string") {
                     authPromise = Promise.resolve({
                         gatewayToken: window.glue42electron.gwToken
